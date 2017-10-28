@@ -49,7 +49,7 @@ test_data = {}
 R_size = 0
 print('Starting processing testing data.......')
 for i in test_raw.index:
-    if i%10000==0:
+    #if i%10000==0:
         #print(i)
     key = test_raw.loc[i,'name']
     if key not in test_data:
