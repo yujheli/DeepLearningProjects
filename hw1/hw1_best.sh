@@ -1,6 +1,6 @@
 #Download model
-python Download.py
+git clone https://gitlab.com/yujheli/model.git
 #Training
 #python model_best.py $1
 #Tesing
-python test_RNN.py $1 $2 RNN_best.model
+python test_pad.py $1 $2 model/best.model

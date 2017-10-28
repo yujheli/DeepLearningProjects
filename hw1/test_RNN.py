@@ -67,7 +67,7 @@ for i in test_raw.index:
     key = test_raw.loc[i,'name']
     if key not in test_data:
         test_data[key] = []
-    if Label2[i,0] > 0.8:
+    if Label2[i,0] > 0.78:
         test_data[key].append(Label[i,0])
 
 predict_label= {}
