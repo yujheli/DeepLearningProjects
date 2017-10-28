@@ -28,7 +28,7 @@ def to_name(strr):
     return '_'.join(strr.split('_')[:2])
 
 model = load_model(sys.argv[3])
-
+model.summary()
 
 test_raw = pd.read_csv(sys.argv[1]+'/mfcc/test.ark',sep=' ',header=None)
 map_39 = pd.read_csv(sys.argv[1]+'/phones/48_39.map',sep='\t',header=None)
