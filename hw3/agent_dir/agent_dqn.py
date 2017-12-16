@@ -66,11 +66,11 @@ class Agent_DQN(Agent):
         self.epsilon = 0.1
         self.do = 0
         self.learning_rate = 0.01
-        self.model = self._build_model()
+        self.model = self._build_model3()
       
 
         # self.load('Breakout_model_weights_e2.h5')
-        self.load('Breakout_model_weights_3k.h5')
+        self.load('Breakout_model_weights_duel.h5')
 
 
 
@@ -117,10 +117,10 @@ class Agent_DQN(Agent):
         self.epsilon_min = 0.05
         self.epsilon_decay = 0.999
         self.learning_rate = 0.0001
-        self.model = self._build_model3()
+        self.model = self._build_model2()
         #self.load('Breakout_model_weights_e2.h5')
 
-        self.target_model = self._build_model3()
+        self.target_model = self._build_model2()
         self.update_target_model()
         self.batch_size = 32
         self.TRAIN_INTERVAL = 4
@@ -152,7 +152,7 @@ class Agent_DQN(Agent):
         
         self.model.summary()
 
-        log_fd = open('log_dgn_duel.txt', 'w')
+        log_fd = open('log_dgn_sim.txt', 'w')
         log_fd.write('epoch,score,loss,Q\n')
         train_flag = 0
         duration = 0
@@ -226,7 +226,7 @@ class Agent_DQN(Agent):
                 #     self.epsilon *= self.epsilon_decay
 
                 if episode > 1 and episode % 10 == 0:
-                    self.save('Breakout_model_weights_duel.h5')
+                    self.save('Breakout_model_weights_sim.h5')
                     #self.model.save('Breakout_model.h5')
 
 
@@ -404,17 +404,54 @@ class Agent_DQN(Agent):
 
     def replay(self, batch_size):
         minibatch = random.sample(self.memory, batch_size)
+        states = []
+        actions = []
+        rewards = []
+        next_states = []
+        dones = []
         for state, action, reward, next_state, done in minibatch:
-            target = reward
-            if not done:
-                target = (reward + self.gamma *
-                          np.amax(self.model.predict(next_state.reshape(1,84,84,4))[0]))
+            states.append(state)
+            actions.append(action)
+            rewards.append(reward)
+            next_states.append(next_state)
+            dones.append(done)
 
-            target_f = self.model.predict(state.reshape(1,84,84,4))
-            # target_f = np.zeros((1,self.action_size))
-            target_f[0][action] = target
-            his = self.model.fit(state.reshape(1,84,84,4), target_f, epochs=1, verbose=0)
-            self.total_loss += his.history['loss'][0]
+        states = np.stack(states)
+        actions = np.stack(actions)
+        rewards = np.stack(rewards)
+        next_states = np.stack(next_states)
+        dones = np.array(dones)+0
+
+        A_q_s = self.model.predict(next_states, batch_size=batch_size)
+
+        # target_q_s = self.target_model.predict(next_states, batch_size=batch_size)
+        max_target_q_s = rewards + (1-dones) * self.gamma * np.max(A_q_s,axis=1)
+        target = self.model.predict(states, batch_size=batch_size)
+
+        target[range(batch_size), actions] = max_target_q_s
+            # target = np.zeros((1,self.action_size))
+
+        his = self.model.fit(states, target, epochs=1, verbose=0)
+        self.total_loss += his.history['loss'][0]
+
+
+
+        # for state, action, reward, next_state, done in minibatch:
+        #     target = reward
+        #     if not done:
+        #         target = (reward + self.gamma *
+        #                   np.amax(self.model.predict(next_state.reshape(1,84,84,4))[0]))
+
+        #     target_f = self.model.predict(state.reshape(1,84,84,4))
+        #     # target_f = np.zeros((1,self.action_size))
+        #     target_f[0][action] = target
+        #     his = self.model.fit(state.reshape(1,84,84,4), target_f, epochs=1, verbose=0)
+        #     self.total_loss += his.history['loss'][0]
+
+
+
+
+
         # if self.epsilon > self.epsilon_min:
            
         #     self.epsilon *= self.epsilon_decay
