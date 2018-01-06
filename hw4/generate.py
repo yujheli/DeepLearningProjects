@@ -54,8 +54,11 @@ def generate():
 
         # caption, noise, image_file = getTestData(current_test_data)
 
-        np.random.seed(0)
+        np.random.seed(2)
+        seed_list = [3, 9, 10, 20, 27]
         for i in range(5):
+            
+            np.random.seed(seed_list[i])
             noise = np.asarray(np.random.uniform(-1, 1, [1, noise_size]), dtype=np.float32)
 
             feed_dict = {

@@ -11,7 +11,7 @@ class GAN:
         self.d_channel_size = d_channel_size
         self.batch_size = batch_size
 
-    def buildTrainModel(self):
+    def buildTrainModel(self, BN=True):
         #placeholder
         t_real_image = tf.placeholder(dtype=tf.float32, shape=[self.batch_size, self.image_size, self.image_size, 3], name="real_image")
         t_wrong_image = tf.placeholder(dtype=tf.float32, shape=[self.batch_size, self.image_size, self.image_size, 3], name="wrong_image")
@@ -23,10 +23,10 @@ class GAN:
         #generator
         t_fake_image = self.generator(t_noise, t_right_class, reuse=False, is_training=True)
         #discriminator
-        real_image_logits, real_image_labels = self.discriminator(t_real_image, t_right_class, reuse=False, is_training=True)
-        wrong_image_logits, wrong_image_labels = self.discriminator(t_wrong_image, t_right_class, reuse=True, is_training=True)
-        fake_right_logits, fake_right_labels = self.discriminator(t_fake_image, t_right_class, reuse=True, is_training=True)
-        fake_wrong_logits, fake_wrong_labels = self.discriminator(t_fake_image, t_wrong_class, reuse=True, is_training=True)
+        real_image_logits, real_image_labels = self.discriminator(t_real_image, t_right_class, reuse=False, is_training=True, BN=BN)
+        wrong_image_logits, wrong_image_labels = self.discriminator(t_wrong_image, t_right_class, reuse=True, is_training=True, BN=BN)
+        fake_right_logits, fake_right_labels = self.discriminator(t_fake_image, t_right_class, reuse=True, is_training=True, BN=BN)
+        fake_wrong_logits, fake_wrong_labels = self.discriminator(t_fake_image, t_wrong_class, reuse=True, is_training=True, BN=BN)
 
         #loss
         t_g_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_right_logits, labels=tf.ones_like(fake_right_labels)))
@@ -125,7 +125,7 @@ class GAN:
         return tf.tanh(h_4)
 
 
-    def discriminator(self, image, class_label, reuse=False, is_training=False):
+    def discriminator(self, image, class_label, reuse=False, is_training=False, BN=True):
         if reuse:
             tf.get_variable_scope().reuse_variables()
 
@@ -138,17 +138,20 @@ class GAN:
 
         h_1 = convolutionLayer(h_0, filter_shape=[5, 5, h_0.get_shape()[-1], d_channel_size_2], stride_shape=[1, 2, 2, 1], 
             name="d_c_1")
-        h_1 = batchNormLayer(h_1, is_training=is_training, name="d_bn_1")
+        if BN:
+            h_1 = batchNormLayer(h_1, is_training=is_training, name="d_bn_1")
         h_1 = tf.maximum(h_1, 0.2 * h_1)
 
         h_2 = convolutionLayer(h_1, filter_shape=[5, 5, h_1.get_shape()[-1], d_channel_size_4], stride_shape=[1, 2, 2, 1],
             name="d_c_2")
-        h_2 = batchNormLayer(h_2, is_training=is_training, name="d_bn_2")
+        if BN:
+            h_2 = batchNormLayer(h_2, is_training=is_training, name="d_bn_2")
         h_2 = tf.maximum(h_2, 0.2 * h_2)
 
         h_3 = convolutionLayer(h_2, filter_shape=[5, 5, h_2.get_shape()[-1], d_channel_size_8], stride_shape=[1, 2, 2, 1],
             name="d_c_3")
-        h_3 = batchNormLayer(h_3, is_training=is_training, name="d_bn_3")
+        if BN:
+            h_3 = batchNormLayer(h_3, is_training=is_training, name="d_bn_3")
         h_3 = tf.maximum(h_3, 0.2 * h_3)
         #concat h_3 with caption
         # embed = fullyConnectedLayer(caption, output_dim=self.embedding_size, name="d_embedding")
@@ -158,7 +161,8 @@ class GAN:
         tile_embed = tf.tile(embed, [1, 4, 4, 1])   
         concat_embed = tf.concat([h_3, tile_embed], 3)
         h_4 = convolutionLayer(concat_embed, filter_shape=[1, 1, concat_embed.get_shape()[-1], d_channel_size_8], stride_shape=[1, 1, 1, 1], name="d_c_4")
-        h_4 = batchNormLayer(h_4, is_training=is_training, name="d_bn_4")
+        if BN:
+            h_4 = batchNormLayer(h_4, is_training=is_training, name="d_bn_4")
         h_4 = tf.maximum(h_4, 0.2 * h_4)
 
         h_5 = fullyConnectedLayer(tf.reshape(h_4, [self.batch_size, -1]), output_dim=1, name="d_fc_5")
